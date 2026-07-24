@@ -5,8 +5,7 @@ import com.url.shortner.dtos.RegisterRequest;
 import com.url.shortner.models.User;
 import com.url.shortner.service.UserService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,12 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Validated
 public class AuthController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     /**
      * User login

@@ -1,5 +1,7 @@
 package com.url.shortner.exceptions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -9,9 +11,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     // Handle validation errors for @Valid annotated DTOs
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -29,10 +34,7 @@ public class GlobalExceptionHandler {
 
         response.put("errors", fieldErrors);
 
-        // Optional: log to console or logger
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                System.out.println("Validation error - Field: " + error.getField() + ", Message: " + error.getDefaultMessage())
-        );
+        log.warn("Validation failed: {}", fieldErrors);
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
@@ -45,22 +47,46 @@ public class GlobalExceptionHandler {
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", ex.getMessage());
 
-        // Optional: log the exception
-        System.out.println("IllegalArgumentException: " + ex.getMessage());
+        log.warn("IllegalArgumentException: {}", ex.getMessage());
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    // Optional: handle other exceptions globally
+    // Ownership violations (e.g. deleting/updating another user's URL)
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Object> handleSecurityException(SecurityException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.FORBIDDEN.value());
+        response.put("error", ex.getMessage());
+
+        log.warn("SecurityException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    // Requested resource (e.g. a short URL) does not exist
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Object> handleNoSuchElementException(NoSuchElementException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put("error", ex.getMessage());
+
+        log.warn("NoSuchElementException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    // Catch-all: never leak internal exception details to the client
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleOtherExceptions(Exception ex) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put("error", ex.getMessage());
+        response.put("error", "An unexpected error occurred. Please try again later.");
 
-        // Log stacktrace
-        ex.printStackTrace();
+        log.error("Unhandled exception", ex);
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }

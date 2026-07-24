@@ -2,13 +2,14 @@ package com.url.shortner.controllers;
 
 import com.url.shortner.dtos.ClickEventDTO;
 import com.url.shortner.dtos.UrlMappingDTO;
+import com.url.shortner.dtos.UrlRequest;
 import com.url.shortner.models.ClickEvent;
 import com.url.shortner.models.User;
 import com.url.shortner.service.UrlMappingService;
 import com.url.shortner.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -25,24 +26,22 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/urls")
 @Validated
+@RequiredArgsConstructor
 public class UrlMappingController {
 
-    @Autowired
-    private UrlMappingService urlMappingService;
+    private final UrlMappingService urlMappingService;
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     /**
      * Create short URL
      */
     @PostMapping("/shorten")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<UrlMappingDTO> createShortUrl(@Valid @RequestBody Map<String, String> request,
+    public ResponseEntity<UrlMappingDTO> createShortUrl(@Valid @RequestBody UrlRequest request,
                                                         Principal principal) {
-        String originalUrl = request.get("originalUrl");
         User user = userService.findByUsername(principal.getName());
-        UrlMappingDTO urlMappingDTO = urlMappingService.createShortUrl(originalUrl, user);
+        UrlMappingDTO urlMappingDTO = urlMappingService.createShortUrl(request.getOriginalUrl(), user);
         return ResponseEntity.ok(urlMappingDTO);
     }
 
@@ -124,11 +123,10 @@ public class UrlMappingController {
     @PutMapping("/{shortUrl}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UrlMappingDTO> updateOriginalUrl(@PathVariable @NotBlank String shortUrl,
-                                                           @Valid @RequestBody Map<String, String> request,
+                                                           @Valid @RequestBody UrlRequest request,
                                                            Principal principal) {
-        String newOriginalUrl = request.get("originalUrl");
         User user = userService.findByUsername(principal.getName());
-        UrlMappingDTO updatedUrlMapping = urlMappingService.updateOriginalUrl(shortUrl, newOriginalUrl, user);
+        UrlMappingDTO updatedUrlMapping = urlMappingService.updateOriginalUrl(shortUrl, request.getOriginalUrl(), user);
         return ResponseEntity.ok(updatedUrlMapping);
     }
 

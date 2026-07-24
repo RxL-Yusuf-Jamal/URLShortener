@@ -8,7 +8,7 @@ import com.url.shortner.models.User;
 import com.url.shortner.repository.ClickEventRepository;
 import com.url.shortner.repository.UrlMappingRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,13 +20,12 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UrlMappingService {
 
-    @Autowired
-    private UrlMappingRepository urlMappingRepository;
+    private final UrlMappingRepository urlMappingRepository;
 
-    @Autowired
-    private ClickEventRepository clickEventRepository;
+    private final ClickEventRepository clickEventRepository;
 
     // Create a short URL for the given original URL and user
     public UrlMappingDTO createShortUrl(String originalUrl, User user) {
