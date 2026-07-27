@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import {
   FaExternalLinkAlt,
   FaRegCalendarAlt,
+  FaHourglassEnd,
   FaTrashAlt,
   FaEdit,
 } from "react-icons/fa";
@@ -22,6 +23,7 @@ const ShortenItem = ({
   shortUrl,
   clickCount,
   createdDate,
+  expiresAt,
   onDelete,
   refetch,
 }) => {
@@ -198,6 +200,17 @@ const ShortenItem = ({
               </span>
               <span className="text-[17px]">
                 {dayjs(createdDate).format("MMM DD, YYYY")}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 font-semibold text-lg text-slate-800">
+              <span>
+                <FaHourglassEnd />
+              </span>
+              <span className="text-[17px]">
+                {expiresAt
+                  ? `Expires ${dayjs(expiresAt).format("MMM DD, YYYY")}`
+                  : "Never expires"}
               </span>
             </div>
           </div>

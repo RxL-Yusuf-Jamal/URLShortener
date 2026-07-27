@@ -20,7 +20,8 @@ public class UrlMapping {
     @Column(nullable = false)
     private String originalUrl;
 
-    @Column(unique = true, nullable = false)
+    // Nullable: set in a follow-up update once the DB-generated id is known and Base62-encoded (see UrlMappingService.createShortUrl)
+    @Column(unique = true)
     private String shortUrl;
 
     @Column(nullable = false)
@@ -28,6 +29,9 @@ public class UrlMapping {
 
     @Column(nullable = false)
     private LocalDateTime createdDate;
+
+    // Null means the link never expires
+    private LocalDateTime expiresAt;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

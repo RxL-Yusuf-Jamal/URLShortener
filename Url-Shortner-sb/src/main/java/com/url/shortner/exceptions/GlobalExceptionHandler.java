@@ -78,6 +78,32 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    // Client tried to create a resource that already exists (e.g. duplicate username/email)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Object> handleDuplicateResourceException(DuplicateResourceException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.CONFLICT.value());
+        response.put("error", ex.getMessage());
+
+        log.warn("DuplicateResourceException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    // Caller exceeded an enforced rate limit
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Object> handleRateLimitExceededException(RateLimitExceededException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        response.put("error", ex.getMessage());
+
+        log.warn("RateLimitExceededException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     // Catch-all: never leak internal exception details to the client
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleOtherExceptions(Exception ex) {

@@ -1,5 +1,7 @@
 package com.url.shortner.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.url.shortner.cache.CachedUrlMapping;
 import com.url.shortner.dtos.ClickEventDTO;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.models.ClickEvent;
@@ -9,67 +11,73 @@ import com.url.shortner.repository.ClickEventRepository;
 import com.url.shortner.repository.UrlMappingRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UrlMappingService {
 
+    private static final Logger log = LoggerFactory.getLogger(UrlMappingService.class);
+
+    private static final String BASE62_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String CACHE_KEY_PREFIX = "urlmapping:";
+    private static final Duration CACHE_TTL = Duration.ofMinutes(10);
+
     private final UrlMappingRepository urlMappingRepository;
 
     private final ClickEventRepository clickEventRepository;
 
-    // Create a short URL for the given original URL and user
-    public UrlMappingDTO createShortUrl(String originalUrl, User user) {
+    private final StringRedisTemplate redisTemplate;
 
-        String shortUrl = generateShortUrl();
+    private final ObjectMapper objectMapper;
+
+    private final RateLimiterService rateLimiterService;
+
+    // Create a short URL for the given original URL and user.
+    // The id (and therefore the short code derived from it) is assigned by the database's ownn
+    // identity column, so two concurrent creates can never collide, so no existence check or retry is needed.
+    @Transactional
+    public UrlMappingDTO createShortUrl(String originalUrl, Integer expiresInDays, User user) {
+        rateLimiterService.checkShortenLimit(user.getUsername());
+
         UrlMapping urlMapping = new UrlMapping();
         urlMapping.setOriginalUrl(originalUrl);
-        urlMapping.setShortUrl(shortUrl);
         urlMapping.setUser(user);
         urlMapping.setCreatedDate(LocalDateTime.now());
-        UrlMapping savedUrlMapping = urlMappingRepository.save(urlMapping);
-        return convertToDto(savedUrlMapping);
-
-    }
-
-    // Generate a random 8-character alphanumeric string
-    private String generateShortUrl1() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-        Random random = new Random();
-        StringBuilder shortUrl = new StringBuilder(8);
-
-        for(int i = 0;i < 8 ; i++){
-            shortUrl.append(characters.charAt(random.nextInt(characters.length())));
+        if (expiresInDays != null) {
+            urlMapping.setExpiresAt(LocalDateTime.now().plusDays(expiresInDays));
         }
-        return shortUrl.toString();
+        UrlMapping savedUrlMapping = urlMappingRepository.save(urlMapping);
+
+        savedUrlMapping.setShortUrl(encodeBase62(savedUrlMapping.getId()));
+        savedUrlMapping = urlMappingRepository.save(savedUrlMapping);
+
+        return convertToDto(savedUrlMapping);
     }
 
-    private String generateShortUrl() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        Random random = new Random();
-        String shortUrl;
-
-        do {
-            StringBuilder sb = new StringBuilder(8);
-            for (int i = 0; i < 8; i++) {
-                sb.append(characters.charAt(random.nextInt(characters.length())));
-            }
-            shortUrl = sb.toString();
-        } while (urlMappingRepository.existsByShortUrl(shortUrl));
-
-        return shortUrl;
+    private String encodeBase62(long id) {
+        if (id == 0) {
+            return String.valueOf(BASE62_ALPHABET.charAt(0));
+        }
+        StringBuilder sb = new StringBuilder();
+        long value = id;
+        while (value > 0) {
+            sb.append(BASE62_ALPHABET.charAt((int) (value % 62)));
+            value /= 62;
+        }
+        return sb.reverse().toString();
     }
-
 
     // Convert UrlMapping entity to UrlMappingDTO
     private UrlMappingDTO convertToDto(UrlMapping urlMapping){
@@ -79,6 +87,7 @@ public class UrlMappingService {
         urlMappingDTO.setShortUrl(urlMapping.getShortUrl());
         urlMappingDTO.setClickCount(urlMapping.getClickCount());
         urlMappingDTO.setCreatedDate(urlMapping.getCreatedDate());
+        urlMappingDTO.setExpiresAt(urlMapping.getExpiresAt());
         urlMappingDTO.setUsername(urlMapping.getUser().getUsername());
         return urlMappingDTO;
     }
@@ -114,21 +123,80 @@ public class UrlMappingService {
         return clickEvents.stream().collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(), Collectors.counting()));
     }
 
-    // Retrieve original URL and increment click count
+    // Retrieve original URL and increment click count.
+    // The returned urlMapping's in-memory clickCount is intentionally left at its pre-increment value:
+    // nothing reads it from this return value today, and setting it here would let Hibernate's dirty
+    // checking flush a plain assignment over the atomic increment below, silently reintroducing the race.
+    // Cache-aside: a hit skips the DB read of the mapping itself, but the click count increment and
+    // click event recording below still run on every call, hit or miss - caching must never affect analytics.
+    @Transactional
     public UrlMapping getOriginalUrl(String shortUrl) {
-        UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
-        if(urlMapping != null){
-            urlMapping.setClickCount(urlMapping.getClickCount() + 1);
-            urlMappingRepository.save(urlMapping);
+        UrlMapping urlMapping;
+        CachedUrlMapping cached = getFromCache(shortUrl);
 
-            // record Click event
-
-            ClickEvent clickEvent =  new ClickEvent();
-            clickEvent.setClickDate(LocalDateTime.now());
-            clickEvent.setUrlMapping(urlMapping);
-            clickEventRepository.save(clickEvent);
+        if (cached != null) {
+            if (isExpired(cached.getExpiresAt())) {
+                evictFromCache(shortUrl);
+                return null;
+            }
+            urlMapping = new UrlMapping();
+            urlMapping.setId(cached.getId());
+            urlMapping.setOriginalUrl(cached.getOriginalUrl());
+        } else {
+            urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
+            if (urlMapping == null) {
+                return null;
+            }
+            if (isExpired(urlMapping.getExpiresAt())) {
+                return null;
+            }
+            putInCache(shortUrl, urlMapping);
         }
+
+        urlMappingRepository.incrementClickCount(shortUrl);
+
+        // record Click event
+
+        ClickEvent clickEvent =  new ClickEvent();
+        clickEvent.setClickDate(LocalDateTime.now());
+        clickEvent.setUrlMapping(urlMapping);
+        clickEventRepository.save(clickEvent);
+
         return urlMapping;
+    }
+
+    private boolean isExpired(LocalDateTime expiresAt) {
+        return expiresAt != null && expiresAt.isBefore(LocalDateTime.now());
+    }
+
+    // Cache reads/writes are best-effort: if Redis is slow, misconfigured, or down, we fall back
+    // to the database rather than let a caching optimization take the whole redirect path down with it.
+    private CachedUrlMapping getFromCache(String shortUrl) {
+        try {
+            String json = redisTemplate.opsForValue().get(CACHE_KEY_PREFIX + shortUrl);
+            return json != null ? objectMapper.readValue(json, CachedUrlMapping.class) : null;
+        } catch (Exception e) {
+            log.warn("Redis cache read failed for shortUrl={}, falling back to DB", shortUrl, e);
+            return null;
+        }
+    }
+
+    private void putInCache(String shortUrl, UrlMapping urlMapping) {
+        try {
+            CachedUrlMapping cached = new CachedUrlMapping(
+                    urlMapping.getId(), urlMapping.getOriginalUrl(), urlMapping.getExpiresAt());
+            redisTemplate.opsForValue().set(CACHE_KEY_PREFIX + shortUrl, objectMapper.writeValueAsString(cached), CACHE_TTL);
+        } catch (Exception e) {
+            log.warn("Redis cache write failed for shortUrl={}", shortUrl, e);
+        }
+    }
+
+    private void evictFromCache(String shortUrl) {
+        try {
+            redisTemplate.delete(CACHE_KEY_PREFIX + shortUrl);
+        } catch (Exception e) {
+            log.warn("Redis cache evict failed for shortUrl={}", shortUrl, e);
+        }
     }
 
     // Delete URL mapping along with its click events
@@ -149,6 +217,9 @@ public class UrlMappingService {
 
         // Delete the URL mapping itself
         urlMappingRepository.delete(urlMapping);
+
+        // Otherwise a cached entry could keep serving redirects for a link that was just deleted.
+        evictFromCache(shortUrl);
     }
 
     // Update the original URL for a given short URL
@@ -165,6 +236,10 @@ public class UrlMappingService {
 
         urlMapping.setOriginalUrl(newOriginalUrl);
         urlMappingRepository.save(urlMapping);
+
+        // Otherwise a cached entry would keep serving the old originalUrl until the cache TTL expires.
+        evictFromCache(shortUrl);
+
         return convertToDto(urlMapping);
     }
 }

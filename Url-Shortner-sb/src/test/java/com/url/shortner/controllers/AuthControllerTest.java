@@ -3,6 +3,7 @@ package com.url.shortner.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.url.shortner.dtos.LoginRequest;
 import com.url.shortner.dtos.RegisterRequest;
+import com.url.shortner.exceptions.DuplicateResourceException;
 import com.url.shortner.security.jwt.JwtAuthenticationFilter;
 import com.url.shortner.security.jwt.JwtAuthenticationResponse;
 import com.url.shortner.service.UserService;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -55,6 +57,18 @@ class AuthControllerTest {
                 .andExpect(content().string("User registered Successfully"));
 
         verify(userService).registerUser(any());
+    }
+
+    @Test
+    void register_withDuplicateUsername_returns409() throws Exception {
+        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123", Set.of("ROLE_USER"));
+        doThrow(new DuplicateResourceException("Username already exists")).when(userService).registerUser(any());
+
+        mockMvc.perform(post("/api/auth/public/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Username already exists"));
     }
 
     @Test

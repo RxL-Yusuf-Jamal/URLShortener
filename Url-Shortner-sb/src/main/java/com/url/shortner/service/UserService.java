@@ -1,6 +1,7 @@
 package com.url.shortner.service;
 
 import com.url.shortner.dtos.LoginRequest;
+import com.url.shortner.exceptions.DuplicateResourceException;
 import com.url.shortner.models.User;
 import com.url.shortner.repository.UserRepository;
 import com.url.shortner.security.jwt.JwtAuthenticationResponse;
@@ -29,10 +30,10 @@ public class UserService {
 
     public User registerUser(User user){
         if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            throw new DuplicateResourceException("Username already exists");
         }
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Email already exists");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);

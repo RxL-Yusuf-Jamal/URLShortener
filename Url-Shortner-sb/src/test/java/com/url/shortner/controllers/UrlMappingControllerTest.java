@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.url.shortner.config.MethodSecurityTestConfig;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.dtos.UrlRequest;
+import com.url.shortner.exceptions.RateLimitExceededException;
 import com.url.shortner.models.User;
 import com.url.shortner.security.jwt.JwtAuthenticationFilter;
 import com.url.shortner.service.UrlMappingService;
@@ -58,10 +59,10 @@ class UrlMappingControllerTest {
         user.setUsername("alice");
         when(userService.findByUsername("alice")).thenReturn(user);
 
-        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://example.com", "abc12345", 0, LocalDateTime.now(), "alice");
-        when(urlMappingService.createShortUrl(eq("https://example.com"), any(User.class))).thenReturn(dto);
+        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://example.com", "abc12345", 0, LocalDateTime.now(), null, "alice");
+        when(urlMappingService.createShortUrl(eq("https://example.com"), any(), any(User.class))).thenReturn(dto);
 
-        UrlRequest request = new UrlRequest("https://example.com");
+        UrlRequest request = new UrlRequest("https://example.com", null);
 
         mockMvc.perform(post("/api/urls/shorten")
                         .with(csrf())
@@ -73,8 +74,29 @@ class UrlMappingControllerTest {
 
     @Test
     @WithMockUser(username = "alice", roles = "USER")
+    void createShortUrl_withExpiresInDays_passesThroughToService() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);
+        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://example.com", "abc12345", 0, LocalDateTime.now(), expiresAt, "alice");
+        when(urlMappingService.createShortUrl(eq("https://example.com"), eq(7), any(User.class))).thenReturn(dto);
+
+        UrlRequest request = new UrlRequest("https://example.com", 7);
+
+        mockMvc.perform(post("/api/urls/shorten")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiresAt").exists());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
     void createShortUrl_withInvalidUrl_returns400() throws Exception {
-        UrlRequest request = new UrlRequest("not a url");
+        UrlRequest request = new UrlRequest("not a url", null);
 
         mockMvc.perform(post("/api/urls/shorten")
                         .with(csrf())
@@ -86,7 +108,7 @@ class UrlMappingControllerTest {
     @Test
     @WithMockUser(username = "alice", roles = "USER")
     void createShortUrl_withBlankUrl_returns400() throws Exception {
-        UrlRequest request = new UrlRequest("");
+        UrlRequest request = new UrlRequest("", null);
 
         mockMvc.perform(post("/api/urls/shorten")
                         .with(csrf())
@@ -96,8 +118,26 @@ class UrlMappingControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void createShortUrl_whenRateLimited_returns429() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+        when(urlMappingService.createShortUrl(any(), any(), any(User.class)))
+                .thenThrow(new RateLimitExceededException("Too many short URLs created recently. Please try again later."));
+
+        UrlRequest request = new UrlRequest("https://example.com", null);
+
+        mockMvc.perform(post("/api/urls/shorten")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     void createShortUrl_withoutAuthentication_isRejected() throws Exception {
-        UrlRequest request = new UrlRequest("https://example.com");
+        UrlRequest request = new UrlRequest("https://example.com", null);
 
         mockMvc.perform(post("/api/urls/shorten")
                         .with(csrf())

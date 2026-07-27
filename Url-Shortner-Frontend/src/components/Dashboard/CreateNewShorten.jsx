@@ -20,6 +20,7 @@ const CreateNewShorten = ({ setOpen, refetch }) => {
   } = useForm({
     defaultValues: {
       originalUrl: "",
+      expiresInDays: "",
     },
     mode: "onTouched",
   });
@@ -80,6 +81,25 @@ const CreateNewShorten = ({ setOpen, refetch }) => {
             register={register}
             errors={errors}
           />
+        </div>
+
+        <div className="flex flex-col gap-1 mt-3">
+          <label htmlFor="expiresInDays" className="font-semibold text-md">
+            Expires In
+          </label>
+          <select
+            id="expiresInDays"
+            className="px-2 py-2 border outline-none bg-transparent text-slate-700 rounded-md border-slate-600"
+            {...register("expiresInDays", {
+              setValueAs: (value) => (value === "" ? null : Number(value)),
+            })}
+          >
+            <option value="">Never</option>
+            <option value="1">1 day</option>
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+          </select>
         </div>
 
         <button

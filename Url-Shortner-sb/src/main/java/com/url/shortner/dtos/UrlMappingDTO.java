@@ -25,6 +25,9 @@ public class UrlMappingDTO {
     @PastOrPresent(message = "Created date cannot be in the future")
     private LocalDateTime createdDate;
 
+    // Null means the link never expires
+    private LocalDateTime expiresAt;
+
     @NotBlank(message = "Username cannot be blank")
     private String username;
 }

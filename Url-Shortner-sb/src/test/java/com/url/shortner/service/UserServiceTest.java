@@ -1,6 +1,7 @@
 package com.url.shortner.service;
 
 import com.url.shortner.dtos.LoginRequest;
+import com.url.shortner.exceptions.DuplicateResourceException;
 import com.url.shortner.models.User;
 import com.url.shortner.repository.UserRepository;
 import com.url.shortner.security.jwt.JwtAuthenticationResponse;
@@ -76,7 +77,7 @@ class UserServiceTest {
         when(userRepository.existsByUsername("alice")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.registerUser(user))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Username already exists");
 
         verify(userRepository, never()).save(any());
@@ -92,7 +93,7 @@ class UserServiceTest {
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.registerUser(user))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Email already exists");
 
         verify(userRepository, never()).save(any());

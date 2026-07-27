@@ -41,7 +41,7 @@ public class UrlMappingController {
     public ResponseEntity<UrlMappingDTO> createShortUrl(@Valid @RequestBody UrlRequest request,
                                                         Principal principal) {
         User user = userService.findByUsername(principal.getName());
-        UrlMappingDTO urlMappingDTO = urlMappingService.createShortUrl(request.getOriginalUrl(), user);
+        UrlMappingDTO urlMappingDTO = urlMappingService.createShortUrl(request.getOriginalUrl(), request.getExpiresInDays(), user);
         return ResponseEntity.ok(urlMappingDTO);
     }
 
