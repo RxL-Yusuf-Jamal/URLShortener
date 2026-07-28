@@ -3,6 +3,8 @@ package com.url.shortner.controllers;
 import com.url.shortner.models.UrlMapping;
 import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.UrlMappingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -16,15 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "Redirect", description = "Public short-link redirection (rate-limited per IP)")
 public class RedirectController {
 
     private final UrlMappingService urlMappingService;
 
     private final RateLimiterService rateLimiterService;
 
-    /**
-     * Redirect to original URL
-     */
+    @Operation(summary = "Redirect to the original URL for a short code")
     @GetMapping("/{shortUrl}")
     public ResponseEntity<Void> redirect(@PathVariable @NotBlank(message = "Short URL cannot be blank") String shortUrl,
                                           HttpServletRequest request) {

@@ -7,6 +7,9 @@ import com.url.shortner.models.ClickEvent;
 import com.url.shortner.models.User;
 import com.url.shortner.service.UrlMappingService;
 import com.url.shortner.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -27,15 +30,15 @@ import java.util.Map;
 @RequestMapping("/api/urls")
 @Validated
 @RequiredArgsConstructor
+@Tag(name = "URL Management", description = "Create, list, update, delete, and analyze short URLs")
+@SecurityRequirement(name = "bearerAuth")
 public class UrlMappingController {
 
     private final UrlMappingService urlMappingService;
 
     private final UserService userService;
 
-    /**
-     * Create short URL
-     */
+    @Operation(summary = "Create a short URL, optionally with an expiration duration")
     @PostMapping("/shorten")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UrlMappingDTO> createShortUrl(@Valid @RequestBody UrlRequest request,
@@ -45,9 +48,7 @@ public class UrlMappingController {
         return ResponseEntity.ok(urlMappingDTO);
     }
 
-    /**
-     * Get all URLs of logged-in user
-     */
+    @Operation(summary = "List all short URLs owned by the logged-in user")
     @GetMapping("/myurls")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<UrlMappingDTO>> getUserUrls(Principal principal) {
@@ -57,9 +58,7 @@ public class UrlMappingController {
 
     }
 
-    /**
-     * Get click analytics for a short URL
-     */
+    @Operation(summary = "Get per-day click counts for a short URL within a date range")
     @GetMapping("/analytics/{shortUrl}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<ClickEventDTO>> getUrlAnalytics(@PathVariable @NotBlank String shortUrl,
@@ -78,9 +77,7 @@ public class UrlMappingController {
         return ResponseEntity.ok(clickEventDTOS);
     }
 
-    /**
-     * Get total clicks for logged-in user in a date range
-     */
+    @Operation(summary = "Get total clicks per day across all the logged-in user's URLs within a date range")
     @GetMapping("/totalClicks")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Map<LocalDate, Long>> getTotalClicksByDate(Principal principal,
@@ -99,9 +96,7 @@ public class UrlMappingController {
         return ResponseEntity.ok(totalClicks);
     }
 
-    /**
-     * Delete a short URL
-     */
+    @Operation(summary = "Delete a short URL owned by the logged-in user")
     @DeleteMapping("/{shortUrl}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Map<String, String>> deleteShortUrl(@PathVariable @NotBlank String shortUrl,
@@ -117,9 +112,7 @@ public class UrlMappingController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Update Original Url keeping short URL same
-     */
+    @Operation(summary = "Update the destination URL for an existing short URL, keeping the short code unchanged")
     @PutMapping("/{shortUrl}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UrlMappingDTO> updateOriginalUrl(@PathVariable @NotBlank String shortUrl,
