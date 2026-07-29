@@ -52,7 +52,9 @@ const CreateNewShorten = ({ setOpen, refetch }) => {
       reset();
       setOpen(false);
     } catch (error) {
-      toast.error("Create ShortURL Failed");
+      const fieldError = error.response?.data?.errors?.originalUrl;
+      const errorMessage = fieldError || error.response?.data?.error || "Create ShortURL Failed";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -78,6 +80,8 @@ const CreateNewShorten = ({ setOpen, refetch }) => {
             placeholder="https://example.com"
             type="url"
             message="Url is required"
+            max={2048}
+            maxMessage="URL cannot exceed 2048 characters"
             register={register}
             errors={errors}
           />

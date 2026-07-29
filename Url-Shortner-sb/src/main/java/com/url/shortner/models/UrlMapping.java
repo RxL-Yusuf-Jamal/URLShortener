@@ -17,7 +17,7 @@ public class UrlMapping {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private  Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2048)
     private String originalUrl;
 
     // Nullable: set in a follow-up update once the DB-generated id is known and Base62-encoded (see UrlMappingService.createShortUrl)

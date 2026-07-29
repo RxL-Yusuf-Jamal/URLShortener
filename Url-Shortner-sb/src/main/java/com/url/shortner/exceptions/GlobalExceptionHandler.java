@@ -2,6 +2,7 @@ package com.url.shortner.exceptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -102,6 +103,20 @@ public class GlobalExceptionHandler {
         log.warn("RateLimitExceededException: {}", ex.getMessage());
 
         return new ResponseEntity<>(response, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    // Data violated a DB-level constraint (e.g. a value too long for its column)
+    // that slipped past DTO validation
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "The submitted data is invalid or exceeds an allowed limit.");
+
+        log.warn("DataIntegrityViolationException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     // Catch-all: never leak internal exception details to the client

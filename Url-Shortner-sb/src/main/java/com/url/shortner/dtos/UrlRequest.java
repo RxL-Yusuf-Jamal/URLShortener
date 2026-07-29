@@ -3,6 +3,7 @@ package com.url.shortner.dtos;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,7 @@ public class UrlRequest {
 
     @NotBlank(message = "Original URL cannot be blank")
     @URL(message = "Original URL must be a valid URL")
+    @Size(max = 2048, message = "Original URL cannot exceed 2048 characters")
     private String originalUrl;
 
     // Optional: omit (or null) for a link that never expires

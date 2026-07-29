@@ -9,6 +9,8 @@ const TextField = ({
   message,
   className,
   min,
+  max,
+  maxMessage,
   value,
   placeholder,
 }) => {
@@ -34,6 +36,10 @@ const TextField = ({
           required: { value: required, message },
           minLength: min
             ? { value: min, message: "Minimum 6 character is required" }
+            : null,
+
+          maxLength: max
+            ? { value: max, message: maxMessage || `Maximum ${max} characters allowed` }
             : null,
 
           pattern:
