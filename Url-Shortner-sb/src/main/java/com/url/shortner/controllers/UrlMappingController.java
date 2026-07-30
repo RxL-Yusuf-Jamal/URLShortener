@@ -1,6 +1,7 @@
 package com.url.shortner.controllers;
 
 import com.url.shortner.dtos.ClickEventDTO;
+import com.url.shortner.dtos.PagedResponse;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.dtos.UrlRequest;
 import com.url.shortner.models.ClickEvent;
@@ -11,8 +12,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -48,14 +54,17 @@ public class UrlMappingController {
         return ResponseEntity.ok(urlMappingDTO);
     }
 
-    @Operation(summary = "List all short URLs owned by the logged-in user")
+    @Operation(summary = "List short URLs owned by the logged-in user, paginated, most recently created first")
     @GetMapping("/myurls")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<UrlMappingDTO>> getUserUrls(Principal principal) {
+    public ResponseEntity<PagedResponse<UrlMappingDTO>> getUserUrls(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+            Principal principal) {
         User user = userService.findByUsername(principal.getName());
-        List<UrlMappingDTO> urls = urlMappingService.getUrlsByUser(user);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+        PagedResponse<UrlMappingDTO> urls = urlMappingService.getUrlsByUser(user, pageable);
         return ResponseEntity.ok(urls);
-
     }
 
     @Operation(summary = "Get per-day click counts for a short URL within a date range")

@@ -2,6 +2,7 @@ package com.url.shortner.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.url.shortner.config.MethodSecurityTestConfig;
+import com.url.shortner.dtos.PagedResponse;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.dtos.UrlRequest;
 import com.url.shortner.exceptions.RateLimitExceededException;
@@ -16,11 +17,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +32,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -144,6 +148,39 @@ class UrlMappingControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUserUrls_returnsPagedResponse() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+
+        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://example.com", "abc12345", 0, LocalDateTime.now(), null, "alice");
+        PagedResponse<UrlMappingDTO> page = new PagedResponse<>(List.of(dto), 0, 10, 1, 1, true);
+        when(urlMappingService.getUrlsByUser(eq(user), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get("/api/urls/myurls"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].shortUrl").value("abc12345"))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.last").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUserUrls_withNegativePage_returns400() throws Exception {
+        mockMvc.perform(get("/api/urls/myurls").param("page", "-1"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUserUrls_withOversizedPageSize_returns400() throws Exception {
+        mockMvc.perform(get("/api/urls/myurls").param("size", "500"))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react'
 import Graph from './Graph'
-import { dummyData } from '../../dummyData/data'
 import { useStoreContext } from '../../contextApi/ContextApi'
 import { useFetchMyShortUrls, useFetchTotalClicks } from '../../hooks/useQuery'
 import ShortenPopUp from './ShortenPopUp'
@@ -18,8 +17,17 @@ const DashboardLayout = () => {
 
     // console.log(useFetchTotalClicks(token, onError));
 
-    const {isLoading, data: myShortenUrls, refetch } = useFetchMyShortUrls(token, onError)
-    
+    const {
+        isLoading,
+        data: myShortenUrlPages,
+        refetch,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useFetchMyShortUrls(token, onError)
+
+    const myShortenUrls = myShortenUrlPages?.pages?.flatMap((page) => page.content) ?? []
+
     const {isLoading: loader, data: totalClicks} = useFetchTotalClicks(token, onError)
 
     function onError() {
@@ -65,7 +73,20 @@ const DashboardLayout = () => {
                   </div>
               </div>
               ) : (
-                  <ShortenUrlList data={myShortenUrls} />
+                  <>
+                    <ShortenUrlList data={myShortenUrls} />
+                    {hasNextPage && (
+                      <div className="flex justify-center pb-10">
+                        <button
+                          className="bg-custom-gradient px-4 py-2 rounded-md text-white disabled:opacity-50"
+                          onClick={() => fetchNextPage()}
+                          disabled={isFetchingNextPage}
+                        >
+                          {isFetchingNextPage ? "Loading..." : "Load More"}
+                        </button>
+                      </div>
+                    )}
+                  </>
               )}
             </div>
         </div>

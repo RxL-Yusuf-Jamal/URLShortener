@@ -1,5 +1,6 @@
 package com.url.shortner.exceptions;
 
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -115,6 +117,22 @@ public class GlobalExceptionHandler {
         response.put("error", "The submitted data is invalid or exceeds an allowed limit.");
 
         log.warn("DataIntegrityViolationException: {}", ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    // Constraint violations on @RequestParam/@PathVariable method arguments (e.g. an out-of-range
+    // page/size), as opposed to @Valid @RequestBody validation which throws MethodArgumentNotValidException
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Object> handleConstraintViolationException(ConstraintViolationException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", ex.getConstraintViolations().stream()
+                .map(violation -> violation.getMessage())
+                .collect(Collectors.joining(", ")));
+
+        log.warn("ConstraintViolationException: {}", ex.getMessage());
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }

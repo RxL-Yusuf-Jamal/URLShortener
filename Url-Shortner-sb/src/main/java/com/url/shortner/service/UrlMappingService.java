@@ -3,6 +3,7 @@ package com.url.shortner.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.url.shortner.cache.CachedUrlMapping;
 import com.url.shortner.dtos.ClickEventDTO;
+import com.url.shortner.dtos.PagedResponse;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.models.ClickEvent;
 import com.url.shortner.models.UrlMapping;
@@ -13,6 +14,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -92,9 +95,11 @@ public class UrlMappingService {
         return urlMappingDTO;
     }
 
-    // Get all URLs for a specific user
-    public List<UrlMappingDTO> getUrlsByUser(User user) {
-        return urlMappingRepository.findByUser(user).stream().map(this::convertToDto).toList();
+    // Get a page of URLs for a specific user, most recently created first
+    public PagedResponse<UrlMappingDTO> getUrlsByUser(User user, Pageable pageable) {
+        Page<UrlMapping> page = urlMappingRepository.findByUser(user, pageable);
+        List<UrlMappingDTO> content = page.getContent().stream().map(this::convertToDto).toList();
+        return new PagedResponse<>(content, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages(), page.isLast());
     }
 
     // Get click events for a specific short URL in a date range

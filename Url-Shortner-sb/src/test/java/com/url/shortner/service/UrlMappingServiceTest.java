@@ -3,6 +3,7 @@ package com.url.shortner.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.url.shortner.dtos.ClickEventDTO;
+import com.url.shortner.dtos.PagedResponse;
 import com.url.shortner.dtos.UrlMappingDTO;
 import com.url.shortner.models.ClickEvent;
 import com.url.shortner.models.UrlMapping;
@@ -15,6 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -111,13 +116,33 @@ class UrlMappingServiceTest {
     @Test
     void getUrlsByUser_mapsEntitiesToDtos() {
         UrlMapping mapping = urlMapping(1L, "abc12345", "https://example.com", owner, 5, null);
-        when(urlMappingRepository.findByUser(owner)).thenReturn(List.of(mapping));
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("createdDate").descending());
+        when(urlMappingRepository.findByUser(owner, pageable))
+                .thenReturn(new PageImpl<>(List.of(mapping), pageable, 1));
 
-        List<UrlMappingDTO> result = urlMappingService.getUrlsByUser(owner);
+        PagedResponse<UrlMappingDTO> result = urlMappingService.getUrlsByUser(owner, pageable);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getShortUrl()).isEqualTo("abc12345");
-        assertThat(result.get(0).getClickCount()).isEqualTo(5);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getShortUrl()).isEqualTo("abc12345");
+        assertThat(result.getContent().get(0).getClickCount()).isEqualTo(5);
+        assertThat(result.getPage()).isZero();
+        assertThat(result.getSize()).isEqualTo(10);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getTotalPages()).isEqualTo(1);
+        assertThat(result.isLast()).isTrue();
+    }
+
+    @Test
+    void getUrlsByUser_withMultiplePages_reportsNotLast() {
+        UrlMapping mapping = urlMapping(1L, "abc12345", "https://example.com", owner, 0, null);
+        Pageable pageable = PageRequest.of(0, 1, Sort.by("createdDate").descending());
+        when(urlMappingRepository.findByUser(owner, pageable))
+                .thenReturn(new PageImpl<>(List.of(mapping), pageable, 2));
+
+        PagedResponse<UrlMappingDTO> result = urlMappingService.getUrlsByUser(owner, pageable);
+
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        assertThat(result.isLast()).isFalse();
     }
 
     @Test

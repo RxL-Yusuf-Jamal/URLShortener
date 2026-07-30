@@ -1,13 +1,16 @@
 
-import { useQuery } from "react-query"
+import { useQuery, useInfiniteQuery } from "react-query"
 import api from "../apis/api"
 
+const PAGE_SIZE = 10;
 
+// Server returns pages sorted most-recently-created-first, so pages can just be
+// concatenated in fetch order without any client-side re-sorting.
 export const useFetchMyShortUrls = (token, onError) => {
-    return useQuery("my-shortenurls",
-         async () => {
-            return await api.get(
-                "/api/urls/myurls",
+    return useInfiniteQuery("my-shortenurls",
+         async ({ pageParam = 0 }) => {
+            const { data } = await api.get(
+                `/api/urls/myurls?page=${pageParam}&size=${PAGE_SIZE}`,
             {
                 headers: {
                     "Content-Type": "application/json",
@@ -16,14 +19,10 @@ export const useFetchMyShortUrls = (token, onError) => {
                 },
             }
         );
+            return data;
     },
           {
-            select: (data) => {
-                const sortedData = data.data.sort(
-                    (a, b) => new Date(b.createdDate) - new Date(a.createdDate)
-                );
-                return sortedData;
-            },
+            getNextPageParam: (lastPage) => (lastPage.last ? undefined : lastPage.page + 1),
             onError,
             staleTime: 5000
           }
