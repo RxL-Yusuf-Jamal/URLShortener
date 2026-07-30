@@ -3,8 +3,8 @@ import { useStoreContext } from "../../contextApi/ContextApi";
 import { useForm } from "react-hook-form";
 import { data } from "autoprefixer";
 import TextField from "../TextField";
-import { Tooltip } from "@mui/material";
-import { RxCross2 } from "react-icons/rx";
+import Tooltip from "../ui/Tooltip";
+import { HiOutlineXMark } from "react-icons/hi2";
 import api from "../../apis/api";
 import toast from "react-hot-toast";
 
@@ -114,15 +114,17 @@ const CreateNewShorten = ({ setOpen, refetch }) => {
         </button>
 
         {!loading && (
-          <Tooltip title="Close">
-            <button
-              disabled={loading}
-              onClick={() => setOpen(false)}
-              className=" absolute right-2 top-2  "
-            >
-              <RxCross2 className="text-slate-800   text-3xl" />
-            </button>
-          </Tooltip>
+          <div className="absolute right-2 top-2">
+            <Tooltip title="Close">
+              <button
+                disabled={loading}
+                onClick={() => setOpen(false)}
+                className="text-slate-800"
+              >
+                <HiOutlineXMark className="text-3xl" />
+              </button>
+            </Tooltip>
+          </div>
         )}
       </form>
     </div>
