@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.url.shortner.dtos.LoginRequest;
 import com.url.shortner.dtos.RegisterRequest;
 import com.url.shortner.exceptions.DuplicateResourceException;
+import com.url.shortner.exceptions.RateLimitExceededException;
+import org.springframework.security.authentication.BadCredentialsException;
 import com.url.shortner.security.jwt.JwtAuthenticationFilter;
 import com.url.shortner.security.jwt.JwtAuthenticationResponse;
+import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +49,9 @@ class AuthControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private RateLimiterService rateLimiterService;
 
     @Test
     void register_withValidPayload_returns200() throws Exception {
@@ -113,5 +120,29 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_withWrongPassword_returns401() throws Exception {
+        LoginRequest request = new LoginRequest("alice", "wrongpassword");
+        when(userService.authenticateUser(any())).thenThrow(new BadCredentialsException("Bad credentials"));
+
+        mockMvc.perform(post("/api/auth/public/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Invalid username or password"));
+    }
+
+    @Test
+    void login_whenRateLimited_returns429() throws Exception {
+        LoginRequest request = new LoginRequest("alice", "password123");
+        doThrow(new RateLimitExceededException("Too many login attempts for this account. Please try again later."))
+                .when(rateLimiterService).checkLoginLimit(anyString(), anyString());
+
+        mockMvc.perform(post("/api/auth/public/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests());
     }
 }

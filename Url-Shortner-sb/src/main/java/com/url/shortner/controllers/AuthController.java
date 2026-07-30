@@ -3,9 +3,12 @@ package com.url.shortner.controllers;
 import com.url.shortner.dtos.LoginRequest;
 import com.url.shortner.dtos.RegisterRequest;
 import com.url.shortner.models.User;
+import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.UserService;
+import com.url.shortner.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +27,12 @@ public class AuthController {
 
     private final UserService userService;
 
+    private final RateLimiterService rateLimiterService;
+
     @Operation(summary = "Log in with username and password, receive a JWT")
     @PostMapping("/public/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        rateLimiterService.checkLoginLimit(ClientIpResolver.resolve(request), loginRequest.getUsername());
         return ResponseEntity.ok(userService.authenticateUser(loginRequest));
     }
 

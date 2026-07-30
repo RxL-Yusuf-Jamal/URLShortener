@@ -16,9 +16,13 @@ public class RateLimiterService {
 
     private static final int SHORTEN_LIMIT_PER_MINUTE = 5;
     private static final int REDIRECT_LIMIT_PER_MINUTE = 20;
+    private static final int LOGIN_LIMIT_PER_IP_PER_MINUTE = 10;
+    private static final int LOGIN_LIMIT_PER_USERNAME_PER_MINUTE = 5;
 
     private final ConcurrentHashMap<String, Bucket> shortenBuckets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> redirectBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> loginIpBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> loginUsernameBuckets = new ConcurrentHashMap<>();
 
     public void checkShortenLimit(String username) {
         Bucket bucket = shortenBuckets.computeIfAbsent(username, key -> newBucket(SHORTEN_LIMIT_PER_MINUTE));
@@ -31,6 +35,21 @@ public class RateLimiterService {
         Bucket bucket = redirectBuckets.computeIfAbsent(clientIp, key -> newBucket(REDIRECT_LIMIT_PER_MINUTE));
         if (!bucket.tryConsume(1)) {
             throw new RateLimitExceededException("Too many requests. Please try again later.");
+        }
+    }
+
+    // Two dimensions guard against two different attacks: the per-IP bucket stops one source from
+    // brute-forcing many accounts, the per-username bucket stops one account being brute-forced
+    // from many IPs (e.g. a botnet). Both are checked on every attempt, successful or not.
+    public void checkLoginLimit(String clientIp, String username) {
+        Bucket ipBucket = loginIpBuckets.computeIfAbsent(clientIp, key -> newBucket(LOGIN_LIMIT_PER_IP_PER_MINUTE));
+        if (!ipBucket.tryConsume(1)) {
+            throw new RateLimitExceededException("Too many login attempts from this location. Please try again later.");
+        }
+
+        Bucket usernameBucket = loginUsernameBuckets.computeIfAbsent(username, key -> newBucket(LOGIN_LIMIT_PER_USERNAME_PER_MINUTE));
+        if (!usernameBucket.tryConsume(1)) {
+            throw new RateLimitExceededException("Too many login attempts for this account. Please try again later.");
         }
     }
 

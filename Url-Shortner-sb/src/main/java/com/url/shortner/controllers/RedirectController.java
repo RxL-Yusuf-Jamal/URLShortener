@@ -3,6 +3,7 @@ package com.url.shortner.controllers;
 import com.url.shortner.models.UrlMapping;
 import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.UrlMappingService;
+import com.url.shortner.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +30,7 @@ public class RedirectController {
     @GetMapping("/{shortUrl}")
     public ResponseEntity<Void> redirect(@PathVariable @NotBlank(message = "Short URL cannot be blank") String shortUrl,
                                           HttpServletRequest request) {
-        rateLimiterService.checkRedirectLimit(clientIp(request));
+        rateLimiterService.checkRedirectLimit(ClientIpResolver.resolve(request));
 
         UrlMapping urlMapping = urlMappingService.getOriginalUrl(shortUrl);
         if (urlMapping != null) {
@@ -43,16 +44,6 @@ public class RedirectController {
         } else {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    // Render (like most reverse proxies/load balancers) puts the real client IP in X-Forwarded-For;
-    // request.getRemoteAddr() alone would just return the proxy's IP, making per-IP limiting useless.
-    private String clientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
 }
