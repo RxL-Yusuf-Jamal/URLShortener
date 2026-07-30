@@ -225,33 +225,33 @@ const ShortenItem = ({
               import.meta.env.VITE_REACT_FRONT_END_URL + "/s/" + `${shortUrl}`
             }`}
           >
-            <div className="flex cursor-pointer gap-1 items-center bg-btnColor py-2  font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white ">
-              <button className="">{isCopied ? "Copied" : "Copy"}</button>
+            <button className="flex cursor-pointer gap-1 items-center bg-btnColor py-2  font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white ">
+              {isCopied ? "Copied" : "Copy"}
               {isCopied ? (
                 <LiaCheckSolid className="text-md" />
               ) : (
                 <IoCopy className="text-md" />
               )}
-            </div>
+            </button>
           </CopyToClipboard>
 
           {/* Analytics Button */}
-          <div
+          <button
             onClick={() => analyticsHandler(shortUrl)}
             className="flex cursor-pointer gap-1 items-center bg-green-700 py-2 font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white "
           >
-            <button>Analytics</button>
+            Analytics
             <MdAnalytics className="text-md" />
-          </div>
+          </button>
 
           {/* Delete Button */}
-          <div
+          <button
             onClick={deleteHandler}
             className="flex cursor-pointer gap-1 items-center bg-red-600 py-2 font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white "
           >
-            <button>Delete</button>
+            Delete
             <FaTrashAlt className="text-md" />
-          </div>
+          </button>
         </div>
       </div>
       <React.Fragment>
