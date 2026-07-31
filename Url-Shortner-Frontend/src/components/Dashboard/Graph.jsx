@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Bar } from "react-chartjs-2";
 import {
@@ -10,6 +9,7 @@ import {
   Tooltip,
   Filler,
 } from "chart.js";
+import { useTheme } from "../../contextApi/ThemeContext";
 
 ChartJS.register(
   BarElement,
@@ -21,6 +21,11 @@ ChartJS.register(
 );
 
 const Graph = ({ graphData }) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const gridColor = isDark ? "rgba(163, 163, 163, 0.15)" : "rgba(100, 116, 139, 0.15)";
+  const tickColor = isDark ? "#d4d4d4" : "#334155";
+
   const labels = graphData?.map((item, i) => `${item.clickDate}`);
   const userPerDaya = graphData?.map((item) => item.count);
 
@@ -37,8 +42,8 @@ const Graph = ({ graphData }) => {
             ? userPerDaya
             : [1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1],
         backgroundColor:
-         graphData.length > 0 ? "#3b82f6" : "rgba(54, 162, 235, 0.1)",
-        borderColor: "#1D2327",
+         graphData.length > 0 ? "#5b5ff2" : "rgba(91, 95, 242, 0.15)",
+        borderColor: "#5b5ff2",
         pointBorderColor: "red",
         fill: true,
         tension: 0.4,
@@ -55,13 +60,15 @@ const Graph = ({ graphData }) => {
     plugins: {
       legend: {
         display: true,
+        labels: { color: tickColor },
       },
     },
     scales: {
       y: {
         beginAtZero: true,
+        grid: { color: gridColor },
         ticks: {
-          // stepSize: 1,
+          color: tickColor,
           callback: function (value) {
             if (Number.isInteger(value)) {
               return value.toString();
@@ -76,15 +83,14 @@ const Graph = ({ graphData }) => {
             family: "Arial",
             size: 16,
             weight: "bold",
-            color: "#FF0000",
           },
+          color: tickColor,
         },
       },
       x: {
         beginAtZero: true,
-        // ticks: {
-        //   stepSize: 1,
-        // },
+        grid: { color: gridColor },
+        ticks: { color: tickColor },
         title: {
           display: true,
           text: "Date",
@@ -92,8 +98,8 @@ const Graph = ({ graphData }) => {
             family: "Arial",
             size: 16,
             weight: "bold",
-            color: "#FF0000",
           },
+          color: tickColor,
         },
       },
     },

@@ -3,15 +3,16 @@ import React, { useEffect, useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
 import { toast } from "react-toastify";
 import {
-  FaExternalLinkAlt,
-  FaRegCalendarAlt,
-  FaHourglassEnd,
-  FaTrashAlt,
-  FaEdit,
-} from "react-icons/fa";
-import { IoCopy } from "react-icons/io5";
-import { LiaCheckSolid } from "react-icons/lia";
-import { MdAnalytics, MdOutlineAdsClick } from "react-icons/md";
+  HiOutlineArrowTopRightOnSquare,
+  HiOutlineCalendar,
+  HiOutlineClock,
+  HiOutlineTrash,
+  HiOutlinePencilSquare,
+  HiOutlineClipboardDocument,
+  HiOutlineCheck,
+  HiOutlineChartBar,
+  HiOutlineCursorArrowRays,
+} from "react-icons/hi2";
 import api from "../../apis/api";
 import { Link, useNavigate } from "react-router-dom";
 import { useStoreContext } from "../../contextApi/ContextApi";
@@ -131,30 +132,24 @@ const ShortenItem = ({
 
   return (
     <div
-      className={`bg-slate-100 shadow-lg border border-dotted  border-slate-500 px-6 sm:py-1 py-3 rounded-md  transition-all duration-100 `}
+      className={`bg-slate-100 dark:bg-neutral-900 shadow-lg dark:shadow-none border border-dotted border-slate-400 dark:border-neutral-700 px-6 sm:py-1 py-3 rounded-md transition-all duration-100 `}
     >
       <div
         className={`flex sm:flex-row flex-col  sm:justify-between w-full sm:gap-0 gap-5 py-5 `}
       >
         {/* URL Info */}
         <div className="flex-1 sm:space-y-1 max-w-full overflow-x-auto overflow-y-hidden ">
-          <div className="text-slate-900 pb-1 sm:pb-0   flex items-center gap-2 ">
-            {/* <a href={`${import.meta.env.VITE_REACT_SUBDOMAIN}/${shortUrl}`}
-                target="_blank"
-                className=" text-[17px]  font-montserrat font-[600] text-linkColor ">
-                {subDomain + "/" + `${shortUrl}`}
-            </a> */}
-
+          <div className="text-slate-900 dark:text-white pb-1 sm:pb-0   flex items-center gap-2 ">
             <Link
               target="_"
-              className="text-[17px]  font-montserrat font-[600] text-linkColor"
+              className="text-[17px]  font-montserrat font-[600] text-linkColor dark:text-brand-400"
               to={
                 import.meta.env.VITE_REACT_FRONT_END_URL + "/s/" + `${shortUrl}`
               }
             >
               {subDomain + "/s/" + `${shortUrl}`}
             </Link>
-            <FaExternalLinkAlt className="text-linkColor" />
+            <HiOutlineArrowTopRightOnSquare className="text-linkColor dark:text-brand-400" />
           </div>
 
           {/* Editable Original URL */}
@@ -168,15 +163,15 @@ const ShortenItem = ({
                 onBlur={updateOriginalUrl}
                 disabled={updating}
                 autoFocus
-                className="border px-2 py-1 rounded w-full"
+                className="border border-slate-300 dark:border-neutral-600 bg-transparent text-slate-800 dark:text-neutral-100 px-2 py-1 rounded w-full"
               />
             ) : (
               <>
-                <h3 className="text-slate-700 font-[400] text-[17px]">
+                <h3 className="text-slate-700 dark:text-neutral-300 font-[400] text-[17px]">
                   {newOriginalUrl}
                 </h3>
-                <FaEdit
-                  className="text-gray-500 cursor-pointer hover:text-blue-500"
+                <HiOutlinePencilSquare
+                  className="text-slate-500 dark:text-neutral-400 cursor-pointer hover:text-brand-500 dark:hover:text-brand-400"
                   onClick={() => setEditing(true)}
                 />
               </>
@@ -184,9 +179,9 @@ const ShortenItem = ({
           </div>
 
           <div className="flex   items-center gap-8 pt-6 ">
-            <div className="flex gap-1  items-center font-semibold  text-green-800">
+            <div className="flex gap-1  items-center font-semibold  text-green-800 dark:text-green-400">
               <span>
-                <MdOutlineAdsClick className="text-[22px] me-1" />
+                <HiOutlineCursorArrowRays className="text-[22px] me-1" />
               </span>
               <span className="text-[16px]">{clickCount}</span>
               <span className="text-[15px] ">
@@ -194,18 +189,18 @@ const ShortenItem = ({
               </span>
             </div>
 
-            <div className="flex items-center gap-2 font-semibold text-lg text-slate-800">
+            <div className="flex items-center gap-2 font-semibold text-lg text-slate-800 dark:text-neutral-300">
               <span>
-                <FaRegCalendarAlt />
+                <HiOutlineCalendar />
               </span>
               <span className="text-[17px]">
                 {dayjs(createdDate).format("MMM DD, YYYY")}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 font-semibold text-lg text-slate-800">
+            <div className="flex items-center gap-2 font-semibold text-lg text-slate-800 dark:text-neutral-300">
               <span>
-                <FaHourglassEnd />
+                <HiOutlineClock />
               </span>
               <span className="text-[17px]">
                 {expiresAt
@@ -225,12 +220,12 @@ const ShortenItem = ({
               import.meta.env.VITE_REACT_FRONT_END_URL + "/s/" + `${shortUrl}`
             }`}
           >
-            <button className="flex cursor-pointer gap-1 items-center bg-btnColor py-2  font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white ">
+            <button className="flex cursor-pointer gap-1 items-center bg-btnColor py-2  font-semibold shadow-md shadow-slate-500 dark:shadow-none px-6 rounded-md text-white ">
               {isCopied ? "Copied" : "Copy"}
               {isCopied ? (
-                <LiaCheckSolid className="text-md" />
+                <HiOutlineCheck className="text-md" />
               ) : (
-                <IoCopy className="text-md" />
+                <HiOutlineClipboardDocument className="text-md" />
               )}
             </button>
           </CopyToClipboard>
@@ -238,19 +233,19 @@ const ShortenItem = ({
           {/* Analytics Button */}
           <button
             onClick={() => analyticsHandler(shortUrl)}
-            className="flex cursor-pointer gap-1 items-center bg-green-700 py-2 font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white "
+            className="flex cursor-pointer gap-1 items-center bg-green-700 py-2 font-semibold shadow-md shadow-slate-500 dark:shadow-none px-6 rounded-md text-white "
           >
             Analytics
-            <MdAnalytics className="text-md" />
+            <HiOutlineChartBar className="text-md" />
           </button>
 
           {/* Delete Button */}
           <button
             onClick={deleteHandler}
-            className="flex cursor-pointer gap-1 items-center bg-red-600 py-2 font-semibold shadow-md shadow-slate-500 px-6 rounded-md text-white "
+            className="flex cursor-pointer gap-1 items-center bg-red-600 py-2 font-semibold shadow-md shadow-slate-500 dark:shadow-none px-6 rounded-md text-white "
           >
             Delete
-            <FaTrashAlt className="text-md" />
+            <HiOutlineTrash className="text-md" />
           </button>
         </div>
       </div>
@@ -258,7 +253,7 @@ const ShortenItem = ({
         <div
           className={`${
             analyticToggle ? "flex" : "hidden"
-          }  max-h-96 sm:mt-0 mt-5 min-h-96 relative  border-t-2 w-[100%] overflow-hidden `}
+          }  max-h-96 sm:mt-0 mt-5 min-h-96 relative  border-t-2 border-slate-300 dark:border-neutral-700 w-[100%] overflow-hidden `}
         >
           {loader ? (
             <div className="min-h-[calc(450px-140px)] flex justify-center items-center w-full">
@@ -272,17 +267,17 @@ const ShortenItem = ({
                   wrapperClass=""
                   colors={["#306cce", "#72a1ed"]}
                 />
-                <p className="text-slate-700">Please Wait...</p>
+                <p className="text-slate-700 dark:text-neutral-300">Please Wait...</p>
               </div>
             </div>
           ) : (
             <>
               {analyticsData.length === 0 && (
                 <div className="absolute flex flex-col  justify-center sm:items-center items-end  w-full left-0 top-0 bottom-0 right-0 m-auto">
-                  <h1 className=" text-slate-800 font-serif sm:text-2xl text-[15px] font-bold mb-1">
+                  <h1 className=" text-slate-800 dark:text-white font-serif sm:text-2xl text-[15px] font-bold mb-1">
                     No Data For This Time Period
                   </h1>
-                  <h3 className="sm:w-96 w-[90%] sm:ml-0 pl-6 text-center sm:text-lg text-[12px] text-slate-600 ">
+                  <h3 className="sm:w-96 w-[90%] sm:ml-0 pl-6 text-center sm:text-lg text-[12px] text-slate-600 dark:text-neutral-400 ">
                     Share your short link to view where your engagements are
                     coming from
                   </h3>

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { IoIosMenu } from "react-icons/io";
-import { RxCross2 } from "react-icons/rx";
+import { HiOutlineBars3, HiOutlineXMark, HiOutlineLink } from "react-icons/hi2";
 import { useStoreContext } from "../contextApi/ContextApi";
+import Button from "./ui/Button";
+import ThemeToggle from "./ui/ThemeToggle";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -16,82 +17,78 @@ const Navbar = () => {
     navigate("/login");
   };
 
+  const linkClass = (isActive) =>
+    `font-medium transition-colors ${
+      isActive
+        ? "text-brand-600 dark:text-brand-400"
+        : "text-slate-600 hover:text-slate-900 dark:text-neutral-300 dark:hover:text-white"
+    }`;
+
   return (
     <div className="sticky top-0 z-50">
       {/* --- Top Navbar Row --- */}
-      <div className="h-16 bg-custom-gradient-navbar flex items-center">
-        <div className="lg:px-14 sm:px-8 px-4 w-full flex justify-between">
+      <div className="h-16 bg-white dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 flex items-center">
+        <div className="lg:px-14 sm:px-8 px-4 w-full flex justify-between items-center">
           {/* Logo */}
-          <Link to="/">
-            <h1 className="font-bold text-3xl text-black italic sm:mt-0 mt-2">
+          <Link to="/" className="flex items-center gap-2">
+            <HiOutlineLink className="text-2xl text-brand-600 dark:text-brand-400" />
+            <h1 className="font-bold text-2xl text-slate-900 dark:text-white">
               SnapURL
             </h1>
           </Link>
 
           {/* Desktop Menu */}
-          <ul className="hidden sm:flex gap-10 items-center text-slate-800">
+          <ul className="hidden sm:flex gap-8 items-center">
             <li>
-              <Link
-                className={`${
-                  path === "/" ? "text-black font-semibold" : "text-gray-600"
-                }`}
-                to="/"
-              >
+              <Link className={linkClass(path === "/")} to="/">
                 Home
               </Link>
             </li>
             <li>
-              <Link
-                className={`${
-                  path === "/about" ? "text-black font-semibold" : "text-gray-600"
-                }`}
-                to="/about"
-              >
+              <Link className={linkClass(path === "/about")} to="/about">
                 About
               </Link>
             </li>
             {token && (
               <li>
-                <Link
-                  className={`${
-                    path === "/dashboard"
-                      ? "text-black font-semibold"
-                      : "text-gray-600"
-                  }`}
-                  to="/dashboard"
-                >
+                <Link className={linkClass(path === "/dashboard")} to="/dashboard">
                   Dashboard
                 </Link>
               </li>
             )}
+            <li>
+              <ThemeToggle />
+            </li>
             {!token && (
-              <Link to="/register">
-                <li className="bg-custom-gradient text-white cursor-pointer w-24 text-center font-semibold px-2 py-2 rounded-md hover:text-slate-300 transition-all duration-150">
-                  Sign Up
-                </li>
-              </Link>
+              <li>
+                <Link to="/register">
+                  <Button variant="primary">Sign Up</Button>
+                </Link>
+              </li>
             )}
             {token && (
-              <button
-                onClick={onLogOutHandler}
-                className="bg-rose-700 text-white cursor-pointer w-24 text-center font-semibold px-2 py-2 rounded-md hover:text-slate-300 transition-all duration-150"
-              >
-                Log Out
-              </button>
+              <li>
+                <Button variant="secondary" onClick={onLogOutHandler}>
+                  Log Out
+                </Button>
+              </li>
             )}
           </ul>
 
           {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setNavbarOpen(!navbarOpen)}
-            className="sm:hidden flex items-center"
-          >
-            {navbarOpen ? (
-              <RxCross2 className="text-black text-3xl" />
-            ) : (
-              <IoIosMenu className="text-black text-3xl" />
-            )}
-          </button>
+          <div className="sm:hidden flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => setNavbarOpen(!navbarOpen)}
+              className="flex items-center text-slate-700 dark:text-neutral-200"
+            >
+              {navbarOpen ? (
+                <HiOutlineXMark className="text-3xl" />
+              ) : (
+                <HiOutlineBars3 className="text-3xl" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -101,55 +98,35 @@ const Navbar = () => {
           navbarOpen ? "max-h-96" : "max-h-0"
         }`}
       >
-        <ul className="flex flex-col gap-4 px-4 py-4 bg-custom-gradient shadow-md">
+        <ul className="flex flex-col gap-4 px-4 py-4 bg-white dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 shadow-md">
           <li>
-            <Link
-              className={`${
-                path === "/" ? "text-white font-semibold" : "text-gray-300"
-              }`}
-              to="/"
-            >
+            <Link className={linkClass(path === "/")} to="/">
               Home
             </Link>
           </li>
           <li>
-            <Link
-              className={`${
-                path === "/about" ? "text-white font-semibold" : "text-gray-300"
-              }`}
-              to="/about"
-            >
+            <Link className={linkClass(path === "/about")} to="/about">
               About
             </Link>
           </li>
           {token && (
             <li>
-              <Link
-                className={`${
-                  path === "/dashboard"
-                    ? "text-white font-semibold"
-                    : "text-gray-300"
-                }`}
-                to="/dashboard"
-              >
+              <Link className={linkClass(path === "/dashboard")} to="/dashboard">
                 Dashboard
               </Link>
             </li>
           )}
           {!token && (
             <Link to="/register">
-              <li className="bg-custom-gradient text-white cursor-pointer w-24 text-center font-semibold px-2 py-2 rounded-md hover:text-slate-300 transition-all duration-150">
+              <Button variant="primary" className="w-full">
                 Sign Up
-              </li>
+              </Button>
             </Link>
           )}
           {token && (
-            <button
-              onClick={onLogOutHandler}
-              className="bg-rose-700 text-white cursor-pointer w-24 text-center font-semibold px-2 py-2 rounded-md hover:text-slate-300 transition-all duration-150"
-            >
+            <Button variant="secondary" className="w-full" onClick={onLogOutHandler}>
               Log Out
-            </button>
+            </Button>
           )}
         </ul>
       </div>

@@ -4,10 +4,8 @@ import React from "react";
 import { motion } from "framer-motion";
 
 import Card from "./Card";
+import Button from "./ui/Button";
 import { useStoreContext } from "../contextApi/ContextApi";
-
-let desc =
-  "Generate short, memorable links with ease using Linklytics’s intuitive interface. Share URLs effortlessly across platforms. Optimize your sharing strategy with Linklytics. Track clicks and manage your links seamlessly to enhance your online presence. Generate short, memorable links with ease using Linklytics’s intuitive interface. Share URLs effortlessly across platforms.";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -35,18 +33,18 @@ const LandingPage = () => {
             }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="font-bold font-roboto text-slate-800 md:text-5xl sm:text-4xl text-3xl   md:leading-[55px] sm:leading-[45px] leading-10 lg:w-full md:w-[70%] w-full"
+            className="font-bold font-roboto text-slate-800 dark:text-white md:text-5xl sm:text-4xl text-3xl   md:leading-[55px] sm:leading-[45px] leading-10 lg:w-full md:w-[70%] w-full"
           >
             SnapURL Simplifies URL Shortening For Efficient Sharing.
           </motion.h1>
-          <p className="text-slate-700 text-sm my-5">
+          <p className="text-slate-700 dark:text-neutral-400 text-sm my-5">
             SnapURL streamlines the process of URL shortening, making sharing
             links effortless and efficient. With its user-friendly interface,
-            Linklytics allows you to generate concise, easy-to-share URLs in
+            SnapURL allows you to generate concise, easy-to-share URLs in
             seconds. Simplify your sharing experience with SnapURL today.
           </p>
           <div className="flex items-center gap-3">
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, y: 80 }}
               whileInView={{
                 opacity: 1,
@@ -54,12 +52,12 @@ const LandingPage = () => {
               }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              onClick={dashBoardNavigateHandler}
-              className="bg-custom-gradient  w-40 text-white rounded-md  py-2"
             >
-              Manage Links
-            </motion.button>
-            <motion.button
+              <Button variant="primary" className="w-40" onClick={dashBoardNavigateHandler}>
+                Manage Links
+              </Button>
+            </motion.div>
+            <motion.div
               initial={{ opacity: 0, y: 80 }}
               whileInView={{
                 opacity: 1,
@@ -67,11 +65,11 @@ const LandingPage = () => {
               }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              onClick={dashBoardNavigateHandler}
-              className="border-btnColor border w-40 text-btnColor rounded-md  py-2 "
             >
-              Create Short Link
-            </motion.button>
+              <Button variant="secondary" className="w-40" onClick={dashBoardNavigateHandler}>
+                Create Short Link
+              </Button>
+            </motion.div>
           </div>
         </div>
 
@@ -102,7 +100,7 @@ const LandingPage = () => {
           }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-slate-800 font-roboto font-bold lg:w-[60%]  md:w-[70%] sm:w-[80%] mx-auto text-3xl text-center"
+          className="text-slate-800 dark:text-white font-roboto font-bold lg:w-[60%]  md:w-[70%] sm:w-[80%] mx-auto text-3xl text-center"
         >
           Trusted by individuals and teams at the world best companies{" "}
         </motion.p>
