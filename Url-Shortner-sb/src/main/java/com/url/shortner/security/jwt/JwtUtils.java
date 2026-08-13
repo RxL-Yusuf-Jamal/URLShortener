@@ -52,6 +52,13 @@ public class JwtUtils {
                 .getPayload().getSubject();
     }
 
+    public Date getExpirationFromJwtToken(String token){
+        return Jwts.parser()
+                .verifyWith((SecretKey) key())
+                .build().parseSignedClaims(token)
+                .getPayload().getExpiration();
+    }
+
     private Key key(){
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }

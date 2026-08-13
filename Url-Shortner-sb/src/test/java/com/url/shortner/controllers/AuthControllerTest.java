@@ -8,7 +8,9 @@ import com.url.shortner.exceptions.RateLimitExceededException;
 import org.springframework.security.authentication.BadCredentialsException;
 import com.url.shortner.security.jwt.JwtAuthenticationFilter;
 import com.url.shortner.security.jwt.JwtAuthenticationResponse;
+import com.url.shortner.security.jwt.JwtUtils;
 import com.url.shortner.service.RateLimiterService;
+import com.url.shortner.service.TokenBlacklistService;
 import com.url.shortner.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +22,14 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Date;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,6 +57,12 @@ class AuthControllerTest {
 
     @MockBean
     private RateLimiterService rateLimiterService;
+
+    @MockBean
+    private JwtUtils jwtUtils;
+
+    @MockBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void register_withValidPayload_returns200() throws Exception {
@@ -144,5 +155,28 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void logout_withValidToken_blacklistsItForItsRemainingLifetime() throws Exception {
+        Date expiration = new Date(System.currentTimeMillis() + 60_000);
+        when(jwtUtils.getJwtFromHeader(any())).thenReturn("some.jwt.token");
+        when(jwtUtils.getExpirationFromJwtToken("some.jwt.token")).thenReturn(expiration);
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer some.jwt.token"))
+                .andExpect(status().isOk());
+
+        verify(tokenBlacklistService).blacklist(eq("some.jwt.token"), any());
+    }
+
+    @Test
+    void logout_withoutToken_doesNotBlacklistAnythingButStillReturns200() throws Exception {
+        when(jwtUtils.getJwtFromHeader(any())).thenReturn(null);
+
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk());
+
+        verify(tokenBlacklistService, never()).blacklist(any(), any());
     }
 }

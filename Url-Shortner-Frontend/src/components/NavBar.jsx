@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { IoIosMenu } from "react-icons/io";
 import { RxCross2 } from "react-icons/rx";
 import { useStoreContext } from "../contextApi/ContextApi";
+import api from "../apis/api";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -10,10 +11,22 @@ const Navbar = () => {
   const path = useLocation().pathname;
   const [navbarOpen, setNavbarOpen] = useState(false);
 
-  const onLogOutHandler = () => {
-    setToken(null);
-    localStorage.removeItem("JWT_TOKEN");
-    navigate("/login");
+  const onLogOutHandler = async () => {
+    try {
+      // Best-effort: revoke the token server-side so it can't be reused if it leaked.
+      // Logout still proceeds locally below even if this call fails.
+      await api.post(
+        "/api/auth/logout",
+        {},
+        { headers: { Authorization: "Bearer " + token } }
+      );
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setToken(null);
+      localStorage.removeItem("JWT_TOKEN");
+      navigate("/login");
+    }
   };
 
   return (
