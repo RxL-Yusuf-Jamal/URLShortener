@@ -9,11 +9,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import org.springframework.data.redis.RedisConnectionFailureException;
+
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,6 +68,23 @@ class TokenBlacklistServiceTest {
 
         when(redisTemplate.hasKey(any())).thenReturn(true);
         assertThat(tokenBlacklistService.isBlacklisted("some.jwt.token")).isTrue();
+    }
+
+    @Test
+    void isBlacklisted_whenRedisUnavailable_failsOpenInsteadOfThrowing() {
+        when(redisTemplate.hasKey(any())).thenThrow(new RedisConnectionFailureException("Redis unavailable"));
+
+        assertThatCode(() -> tokenBlacklistService.isBlacklisted("some.jwt.token")).doesNotThrowAnyException();
+        assertThat(tokenBlacklistService.isBlacklisted("some.jwt.token")).isFalse();
+    }
+
+    @Test
+    void blacklist_whenRedisUnavailable_doesNotThrow() {
+        doThrow(new RedisConnectionFailureException("Redis unavailable"))
+                .when(valueOperations).set(any(), any(), any(Duration.class));
+
+        assertThatCode(() -> tokenBlacklistService.blacklist("some.jwt.token", Duration.ofMinutes(30)))
+                .doesNotThrowAnyException();
     }
 
     @Test
