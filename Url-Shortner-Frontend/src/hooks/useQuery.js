@@ -1,6 +1,7 @@
 
 import { useQuery, useInfiniteQuery } from "react-query"
 import api from "../apis/api"
+import { getTodayDate } from "../utils/helper"
 
 const PAGE_SIZE = 10;
 
@@ -33,7 +34,7 @@ export const useFetchTotalClicks = (token, onError) => {
     return useQuery("url-totalclick",
          async () => {
             return await api.get(
-                "/api/urls/totalClicks?startDate=2024-01-01&endDate=2025-12-31",
+                `/api/urls/totalClicks?startDate=2024-01-01&endDate=${getTodayDate()}`,
             {
                 headers: {
                     "Content-Type": "application/json",

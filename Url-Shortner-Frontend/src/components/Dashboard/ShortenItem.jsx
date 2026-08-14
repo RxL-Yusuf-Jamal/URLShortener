@@ -17,6 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStoreContext } from "../../contextApi/ContextApi";
 import { Hourglass } from "react-loader-spinner";
 import Graph from "./Graph";
+import { getEndOfTodayDateTime } from "../../utils/helper";
 
 const ShortenItem = ({
   originalUrl,
@@ -56,7 +57,7 @@ const ShortenItem = ({
     setLoader(true);
     try {
       const { data } = await api.get(
-        `/api/urls/analytics/${selectedUrl}?startDate=2024-12-01T00:00:00&endDate=2025-12-31T23:59:59`,
+        `/api/urls/analytics/${selectedUrl}?startDate=2024-12-01T00:00:00&endDate=${getEndOfTodayDateTime()}`,
         {
           headers: {
             "Content-Type": "application/json",
