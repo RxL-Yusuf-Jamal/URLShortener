@@ -23,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Date;
-import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -66,7 +65,7 @@ class AuthControllerTest {
 
     @Test
     void register_withValidPayload_returns200() throws Exception {
-        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123", Set.of("ROLE_USER"));
+        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123");
 
         mockMvc.perform(post("/api/auth/public/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +78,7 @@ class AuthControllerTest {
 
     @Test
     void register_withDuplicateUsername_returns409() throws Exception {
-        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123", Set.of("ROLE_USER"));
+        RegisterRequest request = new RegisterRequest("alice", "alice@example.com", "password123");
         doThrow(new DuplicateResourceException("Username already exists")).when(userService).registerUser(any());
 
         mockMvc.perform(post("/api/auth/public/register")
@@ -91,7 +90,7 @@ class AuthControllerTest {
 
     @Test
     void register_withBlankUsername_returns400WithFieldError() throws Exception {
-        RegisterRequest request = new RegisterRequest("", "alice@example.com", "password123", Set.of("ROLE_USER"));
+        RegisterRequest request = new RegisterRequest("", "alice@example.com", "password123");
 
         mockMvc.perform(post("/api/auth/public/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +101,7 @@ class AuthControllerTest {
 
     @Test
     void register_withInvalidEmail_returns400() throws Exception {
-        RegisterRequest request = new RegisterRequest("alice", "not-an-email", "password123", Set.of("ROLE_USER"));
+        RegisterRequest request = new RegisterRequest("alice", "not-an-email", "password123");
 
         mockMvc.perform(post("/api/auth/public/register")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -1,6 +1,5 @@
 package com.url.shortner.dtos;
 
-import java.util.Set;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,7 +21,4 @@ public class RegisterRequest {
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     private  String password;
-
-    @NotEmpty(message = "At least one role must be specified")
-    private Set<@NotBlank(message = "Role name cannot be blank") String> role = Set.of("ROLE_USER");
 }
