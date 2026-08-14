@@ -34,6 +34,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -252,5 +253,66 @@ class UrlMappingControllerTest {
                         .param("startDate", "2026-01-01T00:00:00")
                         .param("endDate", "2026-01-02T00:00:00"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void updateOriginalUrl_withoutExpiresInDays_passesNullThrough() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+
+        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://new.com", "abc12345", 0, LocalDateTime.now(), null, "alice");
+        when(urlMappingService.updateOriginalUrl(eq("abc12345"), eq("https://new.com"), eq(null), any(User.class)))
+                .thenReturn(dto);
+
+        UrlRequest request = new UrlRequest("https://new.com", null);
+
+        mockMvc.perform(put("/api/urls/abc12345")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.originalUrl").value("https://new.com"));
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void updateOriginalUrl_withExpiresInDays_passesItThrough() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(30);
+        UrlMappingDTO dto = new UrlMappingDTO(1L, "https://new.com", "abc12345", 0, LocalDateTime.now(), expiresAt, "alice");
+        when(urlMappingService.updateOriginalUrl(eq("abc12345"), eq("https://new.com"), eq(30), any(User.class)))
+                .thenReturn(dto);
+
+        UrlRequest request = new UrlRequest("https://new.com", 30);
+
+        mockMvc.perform(put("/api/urls/abc12345")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiresAt").exists());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void updateOriginalUrl_whenNotOwner_returns403() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+        when(urlMappingService.updateOriginalUrl(eq("abc12345"), eq("https://new.com"), eq(null), any(User.class)))
+                .thenThrow(new SecurityException("You don't have permission to update this URL"));
+
+        UrlRequest request = new UrlRequest("https://new.com", null);
+
+        mockMvc.perform(put("/api/urls/abc12345")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
     }
 }

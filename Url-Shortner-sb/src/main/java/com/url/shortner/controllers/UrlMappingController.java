@@ -130,7 +130,7 @@ public class UrlMappingController {
                                                            @Valid @RequestBody UrlRequest request,
                                                            Principal principal) {
         User user = userService.findByUsername(principal.getName());
-        UrlMappingDTO updatedUrlMapping = urlMappingService.updateOriginalUrl(shortUrl, request.getOriginalUrl(), user);
+        UrlMappingDTO updatedUrlMapping = urlMappingService.updateOriginalUrl(shortUrl, request.getOriginalUrl(), request.getExpiresInDays(), user);
         return ResponseEntity.ok(updatedUrlMapping);
     }
 

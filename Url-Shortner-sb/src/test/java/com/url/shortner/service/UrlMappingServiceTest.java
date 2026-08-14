@@ -308,11 +308,36 @@ class UrlMappingServiceTest {
         UrlMapping mapping = urlMapping(1L, "abc12345", "https://old.com", owner, 0, null);
         when(urlMappingRepository.findByShortUrl("abc12345")).thenReturn(mapping);
 
-        UrlMappingDTO dto = urlMappingService.updateOriginalUrl("abc12345", "https://new.com", owner);
+        UrlMappingDTO dto = urlMappingService.updateOriginalUrl("abc12345", "https://new.com", null, owner);
 
         assertThat(dto.getOriginalUrl()).isEqualTo("https://new.com");
         verify(urlMappingRepository).save(mapping);
         verify(redisTemplate).delete("urlmapping:abc12345");
+    }
+
+    @Test
+    void updateOriginalUrl_withNullExpiresInDays_leavesExistingExpiryUnchanged() {
+        LocalDateTime existingExpiry = LocalDateTime.now().plusDays(10);
+        UrlMapping mapping = urlMapping(1L, "abc12345", "https://old.com", owner, 0, existingExpiry);
+        when(urlMappingRepository.findByShortUrl("abc12345")).thenReturn(mapping);
+
+        UrlMappingDTO dto = urlMappingService.updateOriginalUrl("abc12345", "https://new.com", null, owner);
+
+        assertThat(dto.getExpiresAt()).isEqualTo(existingExpiry);
+    }
+
+    @Test
+    void updateOriginalUrl_withExpiresInDays_recomputesExpiry() {
+        UrlMapping mapping = urlMapping(1L, "abc12345", "https://old.com", owner, 0,
+                LocalDateTime.now().plusDays(10));
+        when(urlMappingRepository.findByShortUrl("abc12345")).thenReturn(mapping);
+
+        LocalDateTime before = LocalDateTime.now();
+        UrlMappingDTO dto = urlMappingService.updateOriginalUrl("abc12345", "https://new.com", 30, owner);
+        LocalDateTime after = LocalDateTime.now();
+
+        assertThat(dto.getExpiresAt()).isAfterOrEqualTo(before.plusDays(30));
+        assertThat(dto.getExpiresAt()).isBeforeOrEqualTo(after.plusDays(30));
     }
 
     @Test
@@ -322,7 +347,7 @@ class UrlMappingServiceTest {
         UrlMapping mapping = urlMapping(1L, "abc12345", "https://old.com", owner, 0, null);
         when(urlMappingRepository.findByShortUrl("abc12345")).thenReturn(mapping);
 
-        assertThatThrownBy(() -> urlMappingService.updateOriginalUrl("abc12345", "https://new.com", otherUser))
+        assertThatThrownBy(() -> urlMappingService.updateOriginalUrl("abc12345", "https://new.com", null, otherUser))
                 .isInstanceOf(SecurityException.class);
 
         verify(urlMappingRepository, never()).save(any());

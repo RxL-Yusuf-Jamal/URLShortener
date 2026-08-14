@@ -233,8 +233,9 @@ public class UrlMappingService {
         evictFromCache(shortUrl);
     }
 
-    // Update the original URL for a given short URL
-    public UrlMappingDTO updateOriginalUrl(String shortUrl, String newOriginalUrl, User user) {
+    // Update the original URL (and optionally the expiration) for a given short URL.
+    // A null expiresInDays leaves the existing expiration untouched, not cleared.
+    public UrlMappingDTO updateOriginalUrl(String shortUrl, String newOriginalUrl, Integer expiresInDays, User user) {
         UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
 
         if (urlMapping == null) {
@@ -246,9 +247,12 @@ public class UrlMappingService {
         }
 
         urlMapping.setOriginalUrl(newOriginalUrl);
+        if (expiresInDays != null) {
+            urlMapping.setExpiresAt(LocalDateTime.now().plusDays(expiresInDays));
+        }
         urlMappingRepository.save(urlMapping);
 
-        // Otherwise a cached entry would keep serving the old originalUrl until the cache TTL expires.
+        // Otherwise a cached entry would keep serving the old originalUrl/expiresAt until the cache TTL expires.
         evictFromCache(shortUrl);
 
         return convertToDto(urlMapping);
