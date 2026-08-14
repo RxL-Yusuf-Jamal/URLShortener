@@ -102,23 +102,29 @@ public class UrlMappingService {
         return new PagedResponse<>(content, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages(), page.isLast());
     }
 
-    // Get click events for a specific short URL in a date range
-    public List<ClickEventDTO> getClickEventsByDate(String shortUrl, LocalDateTime start, LocalDateTime end) {
+    // Get click events for a specific short URL in a date range - only the owner may view them.
+    public List<ClickEventDTO> getClickEventsByDate(String shortUrl, LocalDateTime start, LocalDateTime end, User user) {
         UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
-        if(urlMapping != null){
-            return clickEventRepository.findByUrlMappingAndClickDateBetween(urlMapping , start , end)
-                    .stream().collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(),Collectors.counting()))
-                    .entrySet().stream()
-                    .map(entry ->
-                    {
-                        ClickEventDTO clickEventDTO = new ClickEventDTO();
-                        clickEventDTO.setClickDate(entry.getKey());
-                        clickEventDTO.setCount(entry.getValue());
-                        return clickEventDTO;
-                    })
-                    .collect(Collectors.toList());
+
+        if (urlMapping == null) {
+            throw new NoSuchElementException("URL mapping not found");
         }
-        return  null;
+
+        if (urlMapping.getUser().getId() != user.getId()) {
+            throw new SecurityException("You don't have permission to view analytics for this URL");
+        }
+
+        return clickEventRepository.findByUrlMappingAndClickDateBetween(urlMapping , start , end)
+                .stream().collect(Collectors.groupingBy(click -> click.getClickDate().toLocalDate(),Collectors.counting()))
+                .entrySet().stream()
+                .map(entry ->
+                {
+                    ClickEventDTO clickEventDTO = new ClickEventDTO();
+                    clickEventDTO.setClickDate(entry.getKey());
+                    clickEventDTO.setCount(entry.getValue());
+                    return clickEventDTO;
+                })
+                .collect(Collectors.toList());
     }
 
     // Get total clicks for a user in a date range

@@ -72,7 +72,8 @@ public class UrlMappingController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<ClickEventDTO>> getUrlAnalytics(@PathVariable @NotBlank String shortUrl,
                                                                @RequestParam("startDate") String startDate,
-                                                               @RequestParam("endDate") String endDate
+                                                               @RequestParam("endDate") String endDate,
+                                                               Principal principal
     ) {
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
         LocalDateTime start = LocalDateTime.parse(startDate, formatter);
@@ -82,7 +83,8 @@ public class UrlMappingController {
             throw new IllegalArgumentException("End date cannot be before start date");
         }
 
-        List<ClickEventDTO> clickEventDTOS = urlMappingService.getClickEventsByDate(shortUrl, start, end);
+        User user = userService.findByUsername(principal.getName());
+        List<ClickEventDTO> clickEventDTOS = urlMappingService.getClickEventsByDate(shortUrl, start, end, user);
         return ResponseEntity.ok(clickEventDTOS);
     }
 

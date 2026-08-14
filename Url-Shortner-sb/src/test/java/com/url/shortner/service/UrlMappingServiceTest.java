@@ -159,7 +159,7 @@ class UrlMappingServiceTest {
         when(clickEventRepository.findByUrlMappingAndClickDateBetween(mapping, start, end))
                 .thenReturn(List.of(day1First, day1Second, day2));
 
-        List<ClickEventDTO> result = urlMappingService.getClickEventsByDate("abc12345", start, end);
+        List<ClickEventDTO> result = urlMappingService.getClickEventsByDate("abc12345", start, end, owner);
 
         assertThat(result).hasSize(2);
         assertThat(result).anySatisfy(dto -> {
@@ -173,13 +173,26 @@ class UrlMappingServiceTest {
     }
 
     @Test
-    void getClickEventsByDate_returnsNullWhenShortUrlNotFound() {
+    void getClickEventsByDate_throwsWhenShortUrlNotFound() {
         when(urlMappingRepository.findByShortUrl("missing")).thenReturn(null);
 
-        List<ClickEventDTO> result = urlMappingService.getClickEventsByDate("missing",
-                LocalDateTime.now().minusDays(1), LocalDateTime.now());
+        assertThatThrownBy(() -> urlMappingService.getClickEventsByDate("missing",
+                LocalDateTime.now().minusDays(1), LocalDateTime.now(), owner))
+                .isInstanceOf(NoSuchElementException.class);
+    }
 
-        assertThat(result).isNull();
+    @Test
+    void getClickEventsByDate_throwsWhenCallerIsNotOwner() {
+        User otherUser = new User();
+        otherUser.setId(2L);
+        UrlMapping mapping = urlMapping(1L, "abc12345", "https://example.com", owner, 2, null);
+        when(urlMappingRepository.findByShortUrl("abc12345")).thenReturn(mapping);
+
+        assertThatThrownBy(() -> urlMappingService.getClickEventsByDate("abc12345",
+                LocalDateTime.now().minusDays(1), LocalDateTime.now(), otherUser))
+                .isInstanceOf(SecurityException.class);
+
+        verify(clickEventRepository, never()).findByUrlMappingAndClickDateBetween(any(), any(), any());
     }
 
     @Test

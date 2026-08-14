@@ -208,4 +208,49 @@ class UrlMappingControllerTest {
         mockMvc.perform(delete("/api/urls/missing").with(csrf()))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUrlAnalytics_whenNotOwner_returns403() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+        when(urlMappingService.getClickEventsByDate(eq("abc12345"), any(), any(), eq(user)))
+                .thenThrow(new SecurityException("You don't have permission to view analytics for this URL"));
+
+        mockMvc.perform(get("/api/urls/analytics/abc12345")
+                        .param("startDate", "2026-01-01T00:00:00")
+                        .param("endDate", "2026-01-02T00:00:00"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUrlAnalytics_whenNotFound_returns404() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+        when(urlMappingService.getClickEventsByDate(eq("missing"), any(), any(), eq(user)))
+                .thenThrow(new NoSuchElementException("URL mapping not found"));
+
+        mockMvc.perform(get("/api/urls/analytics/missing")
+                        .param("startDate", "2026-01-01T00:00:00")
+                        .param("endDate", "2026-01-02T00:00:00"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "alice", roles = "USER")
+    void getUrlAnalytics_forOwner_returnsClickEvents() throws Exception {
+        User user = new User();
+        user.setUsername("alice");
+        when(userService.findByUsername("alice")).thenReturn(user);
+        when(urlMappingService.getClickEventsByDate(eq("abc12345"), any(), any(), eq(user)))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/urls/analytics/abc12345")
+                        .param("startDate", "2026-01-01T00:00:00")
+                        .param("endDate", "2026-01-02T00:00:00"))
+                .andExpect(status().isOk());
+    }
 }
