@@ -40,10 +40,12 @@ public class AuthController {
 
     private final TokenBlacklistService tokenBlacklistService;
 
+    private final ClientIpResolver clientIpResolver;
+
     @Operation(summary = "Log in with username and password, receive a JWT")
     @PostMapping("/public/login")
     public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        rateLimiterService.checkLoginLimit(ClientIpResolver.resolve(request), loginRequest.getUsername());
+        rateLimiterService.checkLoginLimit(clientIpResolver.resolve(request), loginRequest.getUsername());
         return ResponseEntity.ok(userService.authenticateUser(loginRequest));
     }
 

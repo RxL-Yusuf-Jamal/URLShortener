@@ -5,6 +5,7 @@ import com.url.shortner.models.UrlMapping;
 import com.url.shortner.security.jwt.JwtAuthenticationFilter;
 import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.UrlMappingService;
+import com.url.shortner.util.ClientIpResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtAuthenticationFilter.class)
 )
 @AutoConfigureMockMvc(addFilters = false)
+@Import(ClientIpResolver.class)
 class RedirectControllerTest {
 
     @Autowired
@@ -69,7 +72,10 @@ class RedirectControllerTest {
     }
 
     @Test
-    void redirect_usesFirstXForwardedForAddressWhenPresent() throws Exception {
+    void redirect_ignoresXForwardedForFromAnUntrustedPeerAndUsesRemoteAddr() throws Exception {
+        // No app.trusted-proxy-ips configured in this slice, so 127.0.0.1 (MockHttpServletRequest's
+        // default remote address) is not a trusted proxy - a self-reported X-Forwarded-For must be
+        // ignored, or any caller could spoof a fresh IP per request and dodge rate limiting entirely.
         UrlMapping mapping = new UrlMapping();
         mapping.setOriginalUrl("https://example.com");
         when(urlMappingService.getOriginalUrl("abc123")).thenReturn(mapping);
@@ -77,7 +83,7 @@ class RedirectControllerTest {
         mockMvc.perform(get("/abc123").header("X-Forwarded-For", "203.0.113.5, 10.0.0.1"))
                 .andExpect(status().isFound());
 
-        verify(rateLimiterService).checkRedirectLimit("203.0.113.5");
+        verify(rateLimiterService).checkRedirectLimit("127.0.0.1");
     }
 
     @Test

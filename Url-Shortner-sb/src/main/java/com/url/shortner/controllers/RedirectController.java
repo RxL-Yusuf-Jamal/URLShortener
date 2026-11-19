@@ -26,11 +26,13 @@ public class RedirectController {
 
     private final RateLimiterService rateLimiterService;
 
+    private final ClientIpResolver clientIpResolver;
+
     @Operation(summary = "Redirect to the original URL for a short code")
     @GetMapping("/{shortUrl}")
     public ResponseEntity<Void> redirect(@PathVariable @NotBlank(message = "Short URL cannot be blank") String shortUrl,
                                           HttpServletRequest request) {
-        rateLimiterService.checkRedirectLimit(ClientIpResolver.resolve(request));
+        rateLimiterService.checkRedirectLimit(clientIpResolver.resolve(request));
 
         UrlMapping urlMapping = urlMappingService.getOriginalUrl(shortUrl);
         if (urlMapping != null) {

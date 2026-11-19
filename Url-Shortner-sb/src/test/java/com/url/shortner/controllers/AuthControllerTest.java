@@ -12,6 +12,7 @@ import com.url.shortner.security.jwt.JwtUtils;
 import com.url.shortner.service.RateLimiterService;
 import com.url.shortner.service.TokenBlacklistService;
 import com.url.shortner.service.UserService;
+import com.url.shortner.util.ClientIpResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -62,6 +63,9 @@ class AuthControllerTest {
 
     @MockBean
     private TokenBlacklistService tokenBlacklistService;
+
+    @MockBean
+    private ClientIpResolver clientIpResolver;
 
     @Test
     void register_withValidPayload_returns200() throws Exception {
@@ -147,6 +151,7 @@ class AuthControllerTest {
     @Test
     void login_whenRateLimited_returns429() throws Exception {
         LoginRequest request = new LoginRequest("alice", "password123");
+        when(clientIpResolver.resolve(any())).thenReturn("127.0.0.1");
         doThrow(new RateLimitExceededException("Too many login attempts for this account. Please try again later."))
                 .when(rateLimiterService).checkLoginLimit(anyString(), anyString());
 
